@@ -1,7 +1,26 @@
 {
+  "type": "module",
   "dependencies": {
-    "cores": "^0.8.5",
+    "cors": "^2.8.5",
     "dotenv": "^14.2.0",
     "express": "^4.17.2"
-  }
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "name": "budgeting-app-api",
+  "version": "1.0.0",
+  "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RohanPursuit/budgeting-app-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RohanPursuit/budgeting-app-api/issues"
+  },
+  "homepage": "https://github.com/RohanPursuit/budgeting-app-api#readme",
+  "description": ""
 }
