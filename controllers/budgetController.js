@@ -2,6 +2,11 @@ import express from "express"
 import transactions from "../models/transactions.js"
 import sampleObject from "../models/sampleObject.js"
 import validKey, {sortBy, filterBy} from "../helper/helperFunctions.js"
+import dotenv from "dotenv"
+
+dotenv.config()
+
+const PASSWORD = process.env.PASSWORD  || null
 
 const budget = express.Router()
 
@@ -67,9 +72,24 @@ budget.put("/:index", (request, response) => {
 
 })
 
-budget.delete("/:index", (request, response) => {
+budget.delete("/:index/:password", (request, response) => {
     console.log("Delete /:index")
-    const {index} = request.params
+    const {index, password} = request.params
+    if(!password){
+        response.status(401).json({
+            error: "Unauthrized",
+            info: "No Password entered"
+        })
+
+        return null
+    } else if(password !== PASSWORD){
+        response.status(401).json({
+            error: "Unauthrized",
+            info: "Wrong Password"
+        })
+
+        return null
+    }
     transactions.splice(index, 1)
     response.json(transactions)
 })
