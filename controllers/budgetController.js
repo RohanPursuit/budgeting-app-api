@@ -2,15 +2,12 @@ import express from "express"
 import transactions from "../models/transactions.js"
 import sampleObject from "../models/sampleObject.js"
 import validKey, {sortBy, filterBy} from "../helper/helperFunctions.js"
-import dotenv from "dotenv"
 
-dotenv.config()
-
-// const PASSWORD = process.env.PASSWORD  || null
-let userName = null
-let password = null
 
 const budget = express.Router()
+
+const keys = {}
+
 
 budget.get("/admin", (request, response) => {
     console.log("Get /admin")
@@ -19,30 +16,46 @@ budget.get("/admin", (request, response) => {
 
 budget.get("/user/signin", (request, response) => {
     console.log("Get /user/signin")
-    userName = request.body.userName
-    password = request.body.password
+    const {userName, password} = request.query
+
     if(!transactions[userName]){
-        response.send("Username does not exist, you need to sign up")
+        response.json({
+            error: "Name does not exist",
+            info: "Username does not exist, you need to sign up",
+        })
         return null
     } else if(transactions[userName].password !== password){
-        response.send("Wrong Password")
+        response.json({
+            error: "Wrong Password",
+            info: "Wrong Password"
+        })
         return null
     }
-    response.send(`Signed In as ${userName}`)
+    //if credentials are valid, should generate a key and store it in an object with userName as value
+    /**
+    * Example: const keys = {
+    *  "rvonwervisdbv": "john"
+    * }
+    */
+    const format = "xxxxxxxxxxxxxxxxxxxxxx".split("").map(el => {
+        return String(Math.floor(Math.random() * 10))
+    }).join("")
+
+    keys[format] = userName
+    response.json(format)
 })
 
 budget.post("/user/signup", (request, response) => {
     console.log("Get /user/signup")
-    const user = request.body.userName
-    const pass = request.body.password
-    if(transactions[user]){
+    const {userName, password} = request.body
+    if(transactions[userName]){
         response.send("User already exist")
         return null
     }
 
-    transactions[user] = {
-        userName: user,
-        password: pass,
+    transactions[userName] = {
+        userName,
+        password,
         items: []
     }
     response.send("Signup complete")
@@ -50,16 +63,22 @@ budget.post("/user/signup", (request, response) => {
 
 budget.get("/", (request, response) => {
     console.log("Get /budget")
-    if(!transactions[userName]){
-        response.send("You need to sign in")
+    const {userKey} = request.query
+    if(!keys[userKey]){
+        response.json({
+            error: "Not Found",
+            info: "You need to sign in"
+        })
         return null
     }
     const {order, key, filterK, filterV} = request.query
-    let arr = [...transactions[userName].items]
     if(!!order){
-        arr = sortBy(arr, order, key)
+        let arr = transactions[keys[userKey]].items
+        arr = sortBy(arr, order, key)  
     }
-    if(!!filterK){
+    let arr = [...transactions[keys[userKey]].items]
+    //use check boxes to filter in the frontend
+    if(filterK !== "no filter" && !!filterK){
         arr = filterBy(arr, filterK, filterV)
     }
     response.json(arr)
@@ -67,24 +86,25 @@ budget.get("/", (request, response) => {
 
 budget.get("/:index", (request, response) => {
     console.log("Get /budget/:index")
-
-    if(!transactions[userName]){
+    const {userKey} = request.query
+    const {index} = request.params
+    if(!keys[userKey]){
         response.send("You need to sign in")
         return null
     }
-    const {index} = request.params
-    response.json(transactions[userName].items[index])
+    response.json(transactions[keys[userKey]].items[index])
 })
 
 budget.post("/", (request, response) => {
     console.log("Post /budget")
+    const {userKey, transaction} = request.body
 
-    if(!transactions[userName]){
+    if(!keys[userKey]){
         response.send("You need to sign in")
         return null
     }
 
-    const {isValid, key} = validKey(request.body)
+    const {isValid, key} = validKey(transaction)
 
     if(!isValid){
         response.status(406)
@@ -95,67 +115,61 @@ budget.post("/", (request, response) => {
         })
     } else {
         //try using linked list @Jose
-        transactions[userName].items.unshift(request.body)
-        response.json(transactions[userName].items)
+        transactions[keys[userKey]].items.unshift(transaction)
+        response.json(transactions[keys[userKey]].items)
     }  
 })
 
 budget.put("/:index", (request, response) => {
     console.log("Put /budget/:index")
 
-    if(!transactions[userName]){
+    const {userKey, transaction} = request.body
+    if(!keys[userKey]){
         response.send("You need to sign in")
         return null
     }
 
     const {index} = request.params
-    const {isValid, key} = validKey(request.body)
-    if(!!transactions[userName].items[index]){
-        transactions[userName].items[index] = request.body
-        response.json(transactions[userName].items)
-    } else if(!isValid){
+    const {isValid, key} = validKey(transaction)
+    // if(!!transactions[userName].items[index]){
+    //     transactions[userName].items[index] = request.body[1]
+    //     response.json(transactions[userName].items)
+    // } else 
+    if(!isValid){
         response.status(406)
         .json({
             error: "Not Acceptable",
             info: `${key[0].toUpperCase() + key.slice(1)} should be a ${sampleObject[key]} data type`,
             example: sampleObject,
         })
-
-    } else {
+        return null
+        
+    } else if (!transactions[keys[userKey]].items[index]) {
+        console.log("not valid")
         response.status(404).json({
             error: "Not Found",
             info: `Item ${index} does not exist`
         })
+        return null
     }
+
+    transactions[keys[userKey]].items[index] = transaction
+    response.json(transactions[keys[userKey]].items)
 
 })
 
 budget.delete("/:index", (request, response) => {
     console.log("Delete /:index")
 
-    if(!transactions[userName]){
+    const {userKey} = request.query
+    if(!keys[userKey]){
         response.send("You need to sign in")
         return null
     }
 
     const {index} = request.params
-    // if(!password){
-    //     response.status(401).json({
-    //         error: "Unauthrized",
-    //         info: "No Password entered"
-    //     })
-
-    //     return null
-    // } else if(password !== PASSWORD){
-    //     response.status(401).json({
-    //         error: "Unauthrized",
-    //         info: "Wrong Password"
-    //     })
-
-    //     return null
-    // }
-    const deleted = transactions[userName].items.splice(index, 1)
-    response.json(deleted)
+    const deleted = transactions[keys[userKey]].items.splice(index, 1)
+    response.json(transactions[keys[userKey]].items)
 })
 
 export default budget
