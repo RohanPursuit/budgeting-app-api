@@ -2,7 +2,7 @@ export default {
   "john": 
   {
     "userName": "john",
-    "password": "password",
+    "password": "TheBeast69",
     "items":
     [
       {
@@ -75,6 +75,21 @@ export default {
         location: "",
         amount: -7,
       },
+    ]
+  },
+  "rohan540": 
+  {
+    "userName": "rohan540",
+    "password": "thisguy",
+    "items":
+    [
+      {
+        date: "April 1",
+        name: "",
+        source: "Income",
+        location: "",
+        amount: 1000,
+      }
     ]
   }
 };
